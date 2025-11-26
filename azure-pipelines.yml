@@ -1,19 +1,44 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+# azure-pipelines.yml
 
+# 1. Trigger: Automatically start a new build on every push to the 'main' branch
 trigger:
 - main
 
+# 2. Agent Pool: Use your configured self-hosted agent pool
 pool:
-  vmImage: ubuntu-latest
+  name: MyMavenLabPool 
 
+# 3. Steps: The sequence of tasks to execute on the agent
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+# A. Maven Build, Compile, and Test Task
+- task: Maven@3
+  displayName: 'Maven: Clean, Package & Run Tests'
+  inputs:
+    # Path to the pom.xml file in your repository
+    mavenPomFile: 'pom.xml'
+    
+    # Goals: Cleans previous build, compiles code, runs unit tests, and packages the application (e.g., creates a .jar or .war file)
+    goals: 'clean package'
+    
+    # Java Version: Should match the JDK installed on your self-hosted agent
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '1.11' # Use '1.11' for Java 11 or '1.8' for Java 8, etc.
+
+    # Test Reporting: Publish JUnit test results to Azure DevOps
+    publishJUnitResults: true
+    testResultsFiles: '**/surefire-reports/TEST-*.xml'
+    mavenAuthenticateFeed: false
+
+# B. Publish Artifacts Task
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Build Artifact: ECommerce-Drop'
+  inputs:
+    # The built artifact (JAR/WAR) is typically found in the target directory
+    PathtoPublish: '$(System.DefaultWorkingDirectory)/**/target'
+    
+    # The name under which the artifact will be stored in Azure DevOps
+    ArtifactName: 'ECommerce-Drop' 
+    
+    # Location: Publish the artifact to the Azure DevOps server storage
+    publishLocation: 'Container'
